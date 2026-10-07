@@ -1,0 +1,20 @@
+# dependencies
+/node_modules
+
+# build output
+/dist
+
+# local env files
+.env
+.env.local
+
+# local dev data (JSON fallback database) — keep the folder, ignore the data
+/data/*.json
+!/data/.gitkeep
+
+# logs
+npm-debug.log*
+*.log
+
+# misc
+.DS_Store
