@@ -36,7 +36,7 @@ const SERVICE_IMAGES: Record<string, string> = {
   "AC Deep Cleaning Service": "/services/ac-cleaningg.png",
   "AC Repair & Troubleshooting": "/services/ac-repair.png",
   "AC Water Leakage Fixing": "/services/water-leakage.png",
-  "AC Gas Refilling": "/services/gas-refilling.png",
+  "AC Gas Refilling": "/services/gas-refillingg.png",
   "AC Installation": "/services/ac-installation.png",
 };
 
