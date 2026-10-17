@@ -1,10 +1,11 @@
+
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
-import { AC_BRANDS, AC_TYPES, SERVICES, TIME_SLOTS } from "@/lib/constants";
-import type { Booking, SlotAvailability } from "@/lib/types";
+import { AC_BRANDS, AC_TYPES, SERVICES } from "@/lib/constants";
+import type { Booking } from "@/lib/types";
 import { apiFetch, ApiError } from "@/lib/api";
 import StatusBadge from "./StatusBadge";
 
@@ -34,49 +35,17 @@ export default function BookingForm() {
   const searchParams = useSearchParams();
   const preselected = searchParams.get("service") || "";
 
-  const [values, setValues] = useState({ ...INITIAL_VALUES, service: preselected });
+  const [values, setValues] = useState({
+    ...INITIAL_VALUES,
+    service: preselected
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
   const [generalError, setGeneralError] = useState<string | null>(null);
 
-  const [slots, setSlots] = useState<SlotAvailability[]>([]);
-  const [slotsLoading, setSlotsLoading] = useState(false);
-  const [slotsError, setSlotsError] = useState<string | null>(null);
-
-  // Whenever the customer picks a date, ask the backend which time slots
-  // are actually open — this reflects both other customers' bookings and
-  // any slots/days the technician has blocked from their own schedule.
-  useEffect(() => {
-    if (!values.preferred_date) {
-      setSlots([]);
-      return;
-    }
-    let cancelled = false;
-    setSlotsLoading(true);
-    setSlotsError(null);
-    apiFetch<{ slots: SlotAvailability[] }>(`/api/availability?date=${values.preferred_date}`, {
-      auth: false
-    })
-      .then((data) => {
-        if (!cancelled) setSlots(data.slots);
-      })
-      .catch(() => {
-        if (!cancelled) setSlotsError("Could not load available time slots. Please try a different date.");
-      })
-      .finally(() => {
-        if (!cancelled) setSlotsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [values.preferred_date]);
-
   function update<K extends keyof typeof values>(key: K, value: string) {
     setValues((v) => ({ ...v, [key]: value }));
-    if (key === "preferred_date") {
-      setValues((v) => ({ ...v, preferred_time: "" }));
-    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -91,30 +60,39 @@ export default function BookingForm() {
         body: JSON.stringify(values),
         auth: false
       });
+
       setConfirmedBooking(data.booking);
       setStatus("idle");
     } catch (err) {
       if (err instanceof ApiError && err.details) {
-        setErrors(Object.fromEntries(Object.entries(err.details).map(([k, v]) => [k, v[0]])));
+        setErrors(
+          Object.fromEntries(
+            Object.entries(err.details).map(([k, v]) => [k, v[0]])
+          )
+        );
       } else if (err instanceof ApiError) {
         setGeneralError(err.message);
       } else {
         setGeneralError("Something went wrong. Please try again.");
       }
+
       setStatus("error");
     }
   }
 
   if (confirmedBooking) {
     const serviceName =
-      SERVICES.find((s) => s.id === confirmedBooking.service)?.name ?? confirmedBooking.service;
+      SERVICES.find((s) => s.id === confirmedBooking.service)?.name ??
+      confirmedBooking.service;
 
     return (
       <div className="mx-auto max-w-lg rounded-2xl border border-mist bg-white p-8 text-center shadow-card">
         <CheckCircle2 size={44} className="mx-auto text-sky-600" />
+
         <h2 className="mt-4 text-xl font-bold text-navy">
           Your service booking has been received successfully.
         </h2>
+
         <p className="mt-2 text-sm text-slate">
           We&apos;ll contact you shortly to confirm the details.
         </p>
@@ -122,24 +100,30 @@ export default function BookingForm() {
         <dl className="mt-6 space-y-3 rounded-xl bg-frost p-5 text-left text-sm">
           <div className="flex items-center justify-between">
             <dt className="text-slate">Booking ID</dt>
-            <dd className="font-semibold text-navy">{confirmedBooking.booking_id}</dd>
+            <dd className="font-semibold text-navy">
+              {confirmedBooking.booking_id}
+            </dd>
           </div>
+
           <div className="flex items-center justify-between">
             <dt className="text-slate">Customer Name</dt>
-            <dd className="font-semibold text-navy">{confirmedBooking.customer_name}</dd>
+            <dd className="font-semibold text-navy">
+              {confirmedBooking.customer_name}
+            </dd>
           </div>
+
           <div className="flex items-center justify-between">
             <dt className="text-slate">Service</dt>
             <dd className="font-semibold text-navy">{serviceName}</dd>
           </div>
+
           <div className="flex items-center justify-between">
             <dt className="text-slate">Preferred Date</dt>
-            <dd className="font-semibold text-navy">{confirmedBooking.preferred_date}</dd>
+            <dd className="font-semibold text-navy">
+              {confirmedBooking.preferred_date}
+            </dd>
           </div>
-          <div className="flex items-center justify-between">
-            <dt className="text-slate">Preferred Time</dt>
-            <dd className="font-semibold text-navy">{confirmedBooking.preferred_time}</dd>
-          </div>
+
           <div className="flex items-center justify-between">
             <dt className="text-slate">Status</dt>
             <dd>
@@ -149,9 +133,12 @@ export default function BookingForm() {
         </dl>
 
         <p className="mt-6 text-xs leading-relaxed text-slate">
-          Keep your Booking ID and mobile number handy — once the job is complete you can use
-          them to leave a review on the{" "}
-          <a href="/reviews" className="font-semibold text-sky-600 hover:text-sky-700">
+          Keep your Booking ID and mobile number handy — once the job is
+          complete you can use them to leave a review on the{" "}
+          <a
+            href="/reviews"
+            className="font-semibold text-sky-600 hover:text-sky-700"
+          >
             Reviews
           </a>{" "}
           page.
@@ -161,7 +148,9 @@ export default function BookingForm() {
           type="button"
           onClick={() => {
             setConfirmedBooking(null);
-            setValues(INITIAL_VALUES);
+            setValues({ ...INITIAL_VALUES, service: preselected });
+            setErrors({});
+            setGeneralError(null);
           }}
           className="mt-6 text-sm font-semibold text-sky-600 hover:text-sky-700"
         >
@@ -181,7 +170,10 @@ export default function BookingForm() {
       )}
 
       <fieldset className="rounded-2xl border border-mist bg-white p-6 shadow-card sm:p-8">
-        <legend className="px-1 text-base font-semibold text-navy">Customer Information</legend>
+        <legend className="px-1 text-base font-semibold text-navy">
+          Customer Information
+        </legend>
+
         <div className="mt-4 grid gap-5 sm:grid-cols-2">
           <Field label="Full Name" error={errors.customer_name}>
             <input
@@ -191,6 +183,7 @@ export default function BookingForm() {
               required
             />
           </Field>
+
           <Field label="Mobile Number" error={errors.phone}>
             <input
               className={inputClass}
@@ -200,6 +193,7 @@ export default function BookingForm() {
               required
             />
           </Field>
+
           <Field label="Email Address" error={errors.email} full>
             <input
               type="email"
@@ -213,7 +207,10 @@ export default function BookingForm() {
       </fieldset>
 
       <fieldset className="mt-6 rounded-2xl border border-mist bg-white p-6 shadow-card sm:p-8">
-        <legend className="px-1 text-base font-semibold text-navy">Service Information</legend>
+        <legend className="px-1 text-base font-semibold text-navy">
+          Service Information
+        </legend>
+
         <div className="mt-4 grid gap-5 sm:grid-cols-2">
           <Field label="Select Service" error={errors.service} full>
             <select
@@ -230,6 +227,7 @@ export default function BookingForm() {
               ))}
             </select>
           </Field>
+
           <Field label="AC Type" error={errors.ac_type}>
             <select
               className={inputClass}
@@ -245,6 +243,7 @@ export default function BookingForm() {
               ))}
             </select>
           </Field>
+
           <Field label="AC Brand" error={errors.ac_brand}>
             <select
               className={inputClass}
@@ -260,6 +259,7 @@ export default function BookingForm() {
               ))}
             </select>
           </Field>
+
           <Field label="Number of AC Units" error={errors.number_of_units}>
             <input
               type="number"
@@ -271,7 +271,8 @@ export default function BookingForm() {
               required
             />
           </Field>
-          <Field label="Preferred Date" error={errors.preferred_date}>
+
+          <Field label="Preferred Date" error={errors.preferred_date} full>
             <input
               type="date"
               min={todayIso()}
@@ -281,40 +282,14 @@ export default function BookingForm() {
               required
             />
           </Field>
-          <Field
-            label="Preferred Time Slot"
-            error={errors.preferred_time || slotsError || undefined}
-            full
-          >
-            <select
-              className={inputClass}
-              value={values.preferred_time}
-              onChange={(e) => update("preferred_time", e.target.value)}
-              disabled={!values.preferred_date || slotsLoading}
-              required
-            >
-              <option value="">
-                {!values.preferred_date
-                  ? "Pick a date first"
-                  : slotsLoading
-                  ? "Checking availability…"
-                  : "Choose a time slot"}
-              </option>
-              {(values.preferred_date ? slots : TIME_SLOTS.map((t) => ({ time_slot: t, available: true, reason: null }))).map(
-                (s) => (
-                  <option key={s.time_slot} value={s.time_slot} disabled={!s.available}>
-                    {s.time_slot}
-                    {!s.available ? (s.reason === "blocked" ? " — unavailable" : " — fully booked") : ""}
-                  </option>
-                )
-              )}
-            </select>
-          </Field>
         </div>
       </fieldset>
 
       <fieldset className="mt-6 rounded-2xl border border-mist bg-white p-6 shadow-card sm:p-8">
-        <legend className="px-1 text-base font-semibold text-navy">Address Information</legend>
+        <legend className="px-1 text-base font-semibold text-navy">
+          Address Information
+        </legend>
+
         <div className="mt-4 grid gap-5 sm:grid-cols-2">
           <Field label="House / Building Address" error={errors.address} full>
             <input
@@ -324,6 +299,7 @@ export default function BookingForm() {
               required
             />
           </Field>
+
           <Field label="Area" error={errors.area}>
             <input
               className={inputClass}
@@ -332,6 +308,7 @@ export default function BookingForm() {
               required
             />
           </Field>
+
           <Field label="City" error={errors.city}>
             <input
               className={inputClass}
@@ -340,6 +317,7 @@ export default function BookingForm() {
               required
             />
           </Field>
+
           <Field label="Pincode" error={errors.pincode}>
             <input
               className={inputClass}
@@ -353,9 +331,16 @@ export default function BookingForm() {
       </fieldset>
 
       <fieldset className="mt-6 rounded-2xl border border-mist bg-white p-6 shadow-card sm:p-8">
-        <legend className="px-1 text-base font-semibold text-navy">Additional Information</legend>
+        <legend className="px-1 text-base font-semibold text-navy">
+          Additional Information
+        </legend>
+
         <div className="mt-4">
-          <Field label="Problem Description / Additional Message" error={errors.message} full>
+          <Field
+            label="Problem Description / Additional Message"
+            error={errors.message}
+            full
+          >
             <textarea
               rows={4}
               className={`${inputClass} resize-none`}
@@ -372,7 +357,9 @@ export default function BookingForm() {
         disabled={status === "submitting"}
         className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-navy px-6 py-4 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-60 sm:w-auto"
       >
-        {status === "submitting" && <Loader2 size={16} className="animate-spin" />}
+        {status === "submitting" && (
+          <Loader2 size={16} className="animate-spin" />
+        )}
         Book Service
       </button>
     </form>
@@ -395,7 +382,9 @@ function Field({
 }) {
   return (
     <div className={full ? "sm:col-span-2" : undefined}>
-      <label className="mb-1.5 block text-sm font-medium text-navy">{label}</label>
+      <label className="mb-1.5 block text-sm font-medium text-navy">
+        {label}
+      </label>
       {children}
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
